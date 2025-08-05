@@ -115,13 +115,14 @@ class GameController with ChangeNotifier {
   void endGame() {
     _gameData.gameState = GameState.gameOver;
 
-    for (var player in _gameData.players) {
-      //player.totalScore = player.scores.reduce((sum, score) => sum + score);
-      player.totalScore = player.bids.fold(
-        0,
-        (sum, bid) => sum + (bid.state == TurnState.success ? bid.bid : 0),
-      );
-    }
+    _calculateScores();
+    //for (var player in _gameData.players) {
+    //  //player.totalScore = player.scores.reduce((sum, score) => sum + score);
+    //  player.totalScore = player.bids.fold(
+    //    0,
+    //    (sum, bid) => sum + (bid.state == TurnState.success ? bid.bid : 0),
+    //  );
+    //}
   }
 
   void restartGame() {
