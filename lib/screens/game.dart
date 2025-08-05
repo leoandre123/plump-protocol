@@ -135,9 +135,6 @@ class _GamePageState extends State<GamePage> {
                 ],
               ),
             ),
-            Text(
-              "${_controller.getTrickDifference()} stick ${_controller.getTrickDifference().isNegative ? "Under" : "öv"}",
-            ),
             ElevatedButton(
               onPressed: () {
                 setState(() {
@@ -491,7 +488,11 @@ class _GamePageState extends State<GamePage> {
                 ),
               ),
               SizedBox(
-                height: MediaQuery.of(context).size.height / 2.8,
+                height:
+                    MediaQuery.of(context).size.height /
+                    (_controller.gameState == GameState.addingPlayers
+                        ? 2
+                        : 2.8),
                 width: MediaQuery.of(context).size.width,
                 child: Container(
                   decoration: BoxDecoration(
@@ -529,7 +530,7 @@ class _GamePageState extends State<GamePage> {
                               child: Column(
                                 children: [
                                   Text(
-                                    "${_controller.numCards} kort",
+                                    "${_controller.numCards == -1 ? _controller.roundCards[0] : _controller.numCards} kort",
                                     style: Theme.of(context).textTheme.bodyLarge
                                         ?.copyWith(color: textColor),
                                   ),
@@ -551,7 +552,12 @@ class _GamePageState extends State<GamePage> {
                         Divider(),
                         Expanded(
                           child: SingleChildScrollView(
-                            child: getActionContent(),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minWidth: MediaQuery.of(context).size.width,
+                              ),
+                              child: getActionContent(),
+                            ),
                           ),
                         ),
                       ],
