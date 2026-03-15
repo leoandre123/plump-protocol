@@ -7,3 +7,8 @@ En flutterapp för att föra protkoll för plump!
         height="80"
         src="https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png" />
 </a>  
+
+## Todo
+- [ ] Save state on timeout
+- [ ] Keep last names setting
+- [ ] 
