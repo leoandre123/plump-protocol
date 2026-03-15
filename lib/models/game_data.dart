@@ -9,8 +9,8 @@ class GameData {
 
   int currentRound;
   GameState gameState;
-  int currentPlayerIndex;
 
+  int currentPlayerIndex;
   int currentDealerIndex;
 
   GameData({

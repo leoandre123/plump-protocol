@@ -116,13 +116,6 @@ class GameController with ChangeNotifier {
     _gameData.gameState = GameState.gameOver;
 
     _calculateScores();
-    //for (var player in _gameData.players) {
-    //  //player.totalScore = player.scores.reduce((sum, score) => sum + score);
-    //  player.totalScore = player.bids.fold(
-    //    0,
-    //    (sum, bid) => sum + (bid.state == TurnState.success ? bid.bid : 0),
-    //  );
-    //}
   }
 
   void restartGame() {
@@ -212,6 +205,7 @@ class GameController with ChangeNotifier {
 
     if (_gameData.currentRound < _gameData.startCard) {
       _rebuildRounds();
+      _rebuildHistory();
     }
 
     if (settings.allwaysShowScore) {
@@ -293,6 +287,28 @@ class GameController with ChangeNotifier {
 
   void _recordGameState() {
     _gameDataHistory.add(_gameData.copy());
+  }
+
+  void _rebuildHistory() {
+    if (_gameData.gameState == GameState.addingPlayers) return;
+
+    var roundCards = _gameData.roundCards.map((x) => x).toList();
+
+    for (var i = 0; i < _gameDataHistory.length; i++) {
+      if (roundCards.length != _gameDataHistory[i].roundCards.length) {
+        _gameDataHistory[i].roundCards.clear();
+        _gameDataHistory[i].roundCards.addAll(roundCards);
+
+        for (var player in _gameDataHistory[i].players) {
+          while (player.bids.length > roundCards.length) {
+            player.bids.removeLast();
+          }
+          while (player.bids.length < roundCards.length) {
+            player.bids.add(Turn(bid: -1, state: TurnState.empty));
+          }
+        }
+      }
+    }
   }
 
   /* DEBUG */
