@@ -34,4 +34,26 @@ class GameData {
       currentDealerIndex: currentDealerIndex,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'startCard': startCard,
+    'roundCards': roundCards,
+    'players': players.map((p) => p.toJson()).toList(),
+    'currentRound': currentRound,
+    'gameState': gameState.index,
+    'currentPlayerIndex': currentPlayerIndex,
+    'currentDealerIndex': currentDealerIndex,
+  };
+
+  factory GameData.fromJson(Map<String, dynamic> json) => GameData(
+    startCard: json['startCard'] as int,
+    roundCards: List<int>.from(json['roundCards'] as List),
+    players: (json['players'] as List)
+        .map((p) => Player.fromJson(p as Map<String, dynamic>))
+        .toList(),
+    currentRound: json['currentRound'] as int,
+    gameState: GameState.values[json['gameState'] as int],
+    currentPlayerIndex: json['currentPlayerIndex'] as int,
+    currentDealerIndex: json['currentDealerIndex'] as int,
+  );
 }

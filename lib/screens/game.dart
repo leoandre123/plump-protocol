@@ -19,6 +19,22 @@ class GamePage extends StatefulWidget {
 class _GamePageState extends State<GamePage> {
   final GameController _controller = GameController(10);
 
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_onControllerChanged);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onControllerChanged);
+    super.dispose();
+  }
+
+  void _onControllerChanged() {
+    if (mounted) setState(() {});
+  }
+
   Widget getActionContent() {
     Color textColor = Theme.of(context).extension<GameTheme>()!.tableForeground;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -445,8 +461,11 @@ class _GamePageState extends State<GamePage> {
             onPressed: () {
               showDialog(
                 context: context,
-                builder: (_) =>
-                    SettingsDialog(initialSettings: _controller.gameSettings),
+                builder: (_) => SettingsDialog(
+                  initialSettings: _controller.gameSettings,
+                  roundsLocked:
+                      _controller.gameState != GameState.addingPlayers,
+                ),
               ).then((newSettings) {
                 if (newSettings != null) {
                   setState(() {

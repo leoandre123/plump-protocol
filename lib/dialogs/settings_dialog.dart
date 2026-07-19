@@ -4,7 +4,12 @@ import 'package:plumpen_app/models/game_settings.dart';
 
 class SettingsDialog extends StatefulWidget {
   final GameSettings initialSettings;
-  const SettingsDialog({super.key, required this.initialSettings});
+  final bool roundsLocked;
+  const SettingsDialog({
+    super.key,
+    required this.initialSettings,
+    this.roundsLocked = false,
+  });
 
   @override
   State<SettingsDialog> createState() => _SettingsDialogState();
@@ -48,12 +53,21 @@ class _SettingsDialogState extends State<SettingsDialog> {
                         DropdownMenuItem(value: mode, child: Text(mode.label)),
                   )
                   .toList(),
-              onChanged: (value) {
-                setState(() {
-                  _settings.oneCardMode = value!;
-                });
-              },
+              onChanged: widget.roundsLocked
+                  ? null
+                  : (value) {
+                      setState(() {
+                        _settings.oneCardMode = value!;
+                      });
+                    },
             ),
+            if (widget.roundsLocked)
+              Text(
+                "Kan inte ändras efter att spelet har startat",
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
             Text(
               "Poäng för 0 kort",
               style: Theme.of(context).textTheme.bodyMedium,

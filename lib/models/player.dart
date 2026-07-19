@@ -10,6 +10,13 @@ class Turn {
   Turn copyWith({int? bid, TurnState? state}) {
     return Turn(bid: bid ?? this.bid, state: state ?? this.state);
   }
+
+  Map<String, dynamic> toJson() => {'bid': bid, 'state': state.index};
+
+  factory Turn.fromJson(Map<String, dynamic> json) => Turn(
+    bid: json['bid'] as int,
+    state: TurnState.values[json['state'] as int],
+  );
 }
 
 class Player {
@@ -24,6 +31,21 @@ class Player {
     var player = Player(name);
     player.bids = bids.map((p) => p.copyWith()).toList();
     player.totalScore = totalScore;
+    return player;
+  }
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'bids': bids.map((b) => b.toJson()).toList(),
+    'totalScore': totalScore,
+  };
+
+  factory Player.fromJson(Map<String, dynamic> json) {
+    var player = Player(json['name'] as String);
+    player.bids = (json['bids'] as List)
+        .map((b) => Turn.fromJson(b as Map<String, dynamic>))
+        .toList();
+    player.totalScore = json['totalScore'] as int;
     return player;
   }
 }

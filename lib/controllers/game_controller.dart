@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:plumpen_app/models/game_data.dart';
 import 'package:plumpen_app/models/game_settings.dart';
 import 'package:plumpen_app/models/player.dart';
+import 'package:plumpen_app/repositories/game_repository.dart';
 import 'package:plumpen_app/repositories/settings_repository.dart';
 
 //enum GameState { addingPlayers, bidding, playing, noting, gameOver }
@@ -37,6 +38,7 @@ class GameController with ChangeNotifier {
   int get dealingIndex => _gameData.currentDealerIndex;
 
   final SettingsRepository _settingsRepository;
+  final GameRepository _gameRepository;
 
   GameController(int cards)
     : _gameData = GameData(
@@ -50,12 +52,28 @@ class GameController with ChangeNotifier {
       ),
       _gameDataHistory = [],
       _gameSettings = GameSettings(),
-      _settingsRepository = SettingsRepository() {
+      _settingsRepository = SettingsRepository(),
+      _gameRepository = GameRepository() {
     _settingsRepository.loadSettings().then((val) {
       _gameSettings = val;
     });
 
     _rebuildRounds();
+
+    addListener(_persistGame);
+    _loadPersistedGame();
+  }
+
+  void _persistGame() {
+    _gameRepository.saveGame(_gameData);
+  }
+
+  Future<void> _loadPersistedGame() async {
+    final saved = await _gameRepository.loadGame();
+    if (saved != null) {
+      _gameData = saved;
+      notifyListeners();
+    }
   }
 
   int getNotAllowedBid() {
@@ -110,12 +128,16 @@ class GameController with ChangeNotifier {
         Turn(bid: -1, state: TurnState.empty),
       );
     }
+
+    notifyListeners();
   }
 
   void endGame() {
     _gameData.gameState = GameState.gameOver;
 
     _calculateScores();
+
+    notifyListeners();
   }
 
   void restartGame() {
@@ -128,6 +150,8 @@ class GameController with ChangeNotifier {
     _gameData.currentDealerIndex = 0;
 
     _rebuildRounds();
+
+    notifyListeners();
   }
 
   /* Setup Actions */
@@ -135,6 +159,8 @@ class GameController with ChangeNotifier {
   void addPlayer(String name) {
     _gameData.players.add(Player(name));
     _rebuildRounds();
+
+    notifyListeners();
   }
 
   void swapPlayers(int oldIndex, int newIndex) {
@@ -143,10 +169,14 @@ class GameController with ChangeNotifier {
     }
     final Player item = _gameData.players.removeAt(oldIndex);
     _gameData.players.insert(newIndex, item);
+
+    notifyListeners();
   }
 
   void removePlayer(int index) {
     _gameData.players.removeAt(index);
+
+    notifyListeners();
   }
 
   void setStartCardCount(int count) {
@@ -154,6 +184,8 @@ class GameController with ChangeNotifier {
     _gameData.startCard = count;
 
     _rebuildRounds();
+
+    notifyListeners();
   }
 
   /* Game Actions (Requires state recording) */
@@ -171,6 +203,8 @@ class GameController with ChangeNotifier {
 
     _gameData.currentPlayerIndex =
         (_gameData.currentPlayerIndex + 1) % _gameData.players.length;
+
+    notifyListeners();
   }
 
   void goToNoting() {
@@ -178,6 +212,8 @@ class GameController with ChangeNotifier {
     if (_gameData.gameState == GameState.playing) {
       _gameData.gameState = GameState.noting;
     }
+
+    notifyListeners();
   }
 
   void applyScore(bool success) {
@@ -193,20 +229,22 @@ class GameController with ChangeNotifier {
       _gameData.currentPlayerIndex =
           (_gameData.currentPlayerIndex + 1) % _gameData.players.length;
     }
+
+    notifyListeners();
   }
 
   void undo() {
     _gameData = _gameDataHistory.removeLast();
+
+    notifyListeners();
   }
 
   void updateSettings(GameSettings settings) {
     _gameSettings = settings;
     _settingsRepository.saveSettings(_gameSettings);
 
-    if (_gameData.currentRound < _gameData.startCard) {
-      _rebuildRounds();
-      _rebuildHistory();
-    }
+    _rebuildRounds();
+    _rebuildHistory();
 
     if (settings.allwaysShowScore) {
       _calculateScores();
@@ -215,6 +253,8 @@ class GameController with ChangeNotifier {
         player.totalScore = -1;
       }
     }
+
+    notifyListeners();
   }
 
   /* Private Methods */
@@ -251,6 +291,21 @@ class GameController with ChangeNotifier {
         return 2 + i;
       }),
     );
+
+    if (_gameData.gameState != GameState.addingPlayers) {
+      for (var player in _gameData.players) {
+        while (player.bids.length > _gameData.roundCards.length) {
+          player.bids.removeLast();
+        }
+        while (player.bids.length < _gameData.roundCards.length) {
+          player.bids.add(Turn(bid: -1, state: TurnState.empty));
+        }
+      }
+
+      if (_gameData.currentRound >= _gameData.roundCards.length) {
+        _gameData.currentRound = _gameData.roundCards.length - 1;
+      }
+    }
   }
 
   void _calculateScores() {
@@ -306,6 +361,10 @@ class GameController with ChangeNotifier {
           while (player.bids.length < roundCards.length) {
             player.bids.add(Turn(bid: -1, state: TurnState.empty));
           }
+        }
+
+        if (_gameDataHistory[i].currentRound >= roundCards.length) {
+          _gameDataHistory[i].currentRound = roundCards.length - 1;
         }
       }
     }
