@@ -4,6 +4,8 @@ import 'package:plumpen_app/controllers/game_controller.dart';
 import 'package:plumpen_app/dialogs/settings_dialog.dart';
 import 'package:plumpen_app/framework/game_theme.dart';
 import 'package:plumpen_app/models/game_data.dart';
+import 'package:plumpen_app/screens/history.dart';
+import 'package:plumpen_app/utils/protocol_sharing.dart';
 import 'package:plumpen_app/widgets/numpad.dart';
 import 'package:plumpen_app/widgets/score_table.dart';
 
@@ -239,15 +241,35 @@ class _GamePageState extends State<GamePage> {
           ],
         );
       case GameState.gameOver:
+        final winner = _controller.players.reduce(
+          (a, b) => a.totalScore > b.totalScore ? a : b,
+        );
         return Column(
           children: [
             Text(
-              "${_controller.players.reduce((a, b) {
-                return a.totalScore > b.totalScore ? a : b;
-              }).name} vann!",
+              "${winner.name} vann!",
               style: Theme.of(context).textTheme.displaySmall,
             ),
             Padding(padding: EdgeInsetsGeometry.all(16.0)),
+            ElevatedButton(
+              onPressed: () {
+                shareProtocolImage(
+                  context: context,
+                  protocolWidget: ScoreTable(
+                    players: _controller.players,
+                    roundCards: _controller.roundCards,
+                    currentRound: -1,
+                    dealerIndex: -1,
+                    currentIndex: -10,
+                    scoreForZero: _controller.gameSettings.scoreForZero,
+                    scrollable: false,
+                  ),
+                  text: "Plump-protokoll – ${winner.name} vann!",
+                );
+              },
+              child: Text("Dela protokoll"),
+            ),
+            Padding(padding: EdgeInsetsGeometry.all(8.0)),
             ElevatedButton(
               onPressed: () {
                 setState(() {
@@ -452,6 +474,15 @@ class _GamePageState extends State<GamePage> {
               : SizedBox()),
           IconButton(
             onPressed: () {
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const HistoryPage()));
+            },
+            color: Colors.white,
+            icon: const Icon(Icons.history),
+          ),
+          IconButton(
+            onPressed: () {
               _showRestartDialog(context);
             },
             color: Colors.white,
@@ -493,17 +524,19 @@ class _GamePageState extends State<GamePage> {
           child: Column(
             children: [
               Expanded(
-                child: ScoreTable(
-                  players: _controller.players,
-                  roundCards: _controller.roundCards,
-                  currentRound: _controller.currentRound,
-                  dealerIndex: _controller.dealingIndex,
-                  currentIndex:
-                      (_controller.gameState == GameState.noting ||
-                          _controller.gameState == GameState.bidding)
-                      ? _controller.currentIndex
-                      : -10,
-                  scoreForZero: _controller.gameSettings.scoreForZero,
+                child: RepaintBoundary(
+                  child: ScoreTable(
+                    players: _controller.players,
+                    roundCards: _controller.roundCards,
+                    currentRound: _controller.currentRound,
+                    dealerIndex: _controller.dealingIndex,
+                    currentIndex:
+                        (_controller.gameState == GameState.noting ||
+                            _controller.gameState == GameState.bidding)
+                        ? _controller.currentIndex
+                        : -10,
+                    scoreForZero: _controller.gameSettings.scoreForZero,
+                  ),
                 ),
               ),
               SizedBox(

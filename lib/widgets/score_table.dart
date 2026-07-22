@@ -11,6 +11,7 @@ class ScoreTable extends StatelessWidget {
   final int dealerIndex;
   final int currentIndex;
   final int scoreForZero;
+  final bool scrollable;
 
   const ScoreTable({
     super.key,
@@ -20,6 +21,7 @@ class ScoreTable extends StatelessWidget {
     required this.dealerIndex,
     required this.currentIndex,
     required this.scoreForZero,
+    this.scrollable = true,
   });
 
   @override
@@ -42,8 +44,43 @@ class ScoreTable extends StatelessWidget {
       context,
     ).extension<GameTheme>()!.tableActiveBackground;
 
+    final rows = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Table(
+          border: TableBorder(
+            horizontalInside: BorderSide(color: border),
+            verticalInside: BorderSide(color: border),
+          ),
+          columnWidths: <int, TableColumnWidth>{0: FixedColumnWidth(64.0)},
+          children: List.generate(roundCards.length + 1, (row) {
+            return TableRow(
+              children: List.generate(max(players.length + 1, 2), (col) {
+                return Container(
+                  height: 32.0,
+                  color: (row == currentRound && col - 1 == currentIndex
+                      ? Color(0x30000000)
+                      : Colors.transparent),
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(5),
+                      child: getTableContent(col, row, tableFg),
+                    ),
+                  ),
+                );
+              }),
+              decoration: BoxDecoration(
+                color: row == currentRound ? tableBgActiveRow : tableBg,
+              ),
+            );
+          }),
+        ),
+        Container(height: 20.0, decoration: BoxDecoration(color: tableBg)),
+      ],
+    );
+
     return Column(
-      mainAxisSize: MainAxisSize.max,
+      mainAxisSize: scrollable ? MainAxisSize.max : MainAxisSize.min,
       children: [
         Table(
           border: TableBorder.all(
@@ -98,50 +135,9 @@ class ScoreTable extends StatelessWidget {
             ),
           ],
         ),
-        Expanded(
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                Table(
-                  border: TableBorder(
-                    horizontalInside: BorderSide(color: border),
-                    verticalInside: BorderSide(color: border),
-                  ),
-                  columnWidths: <int, TableColumnWidth>{
-                    0: FixedColumnWidth(64.0),
-                  },
-                  children: List.generate(roundCards.length + 1, (row) {
-                    return TableRow(
-                      children: List.generate(max(players.length + 1, 2), (
-                        col,
-                      ) {
-                        return Container(
-                          height: 32.0,
-                          color: (row == currentRound && col - 1 == currentIndex
-                              ? Color(0x30000000)
-                              : Colors.transparent),
-                          child: Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(5),
-                              child: getTableContent(col, row, tableFg),
-                            ),
-                          ),
-                        );
-                      }),
-                      decoration: BoxDecoration(
-                        color: row == currentRound ? tableBgActiveRow : tableBg,
-                      ),
-                    );
-                  }),
-                ),
-                Container(
-                  height: 20.0,
-                  decoration: BoxDecoration(color: tableBg),
-                ),
-              ],
-            ),
-          ),
-        ),
+        scrollable
+            ? Expanded(child: SingleChildScrollView(child: rows))
+            : rows,
       ],
     );
   }

@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:plumpen_app/models/game_data.dart';
+import 'package:plumpen_app/models/game_history_entry.dart';
 import 'package:plumpen_app/models/game_settings.dart';
 import 'package:plumpen_app/models/player.dart';
+import 'package:plumpen_app/repositories/game_history_repository.dart';
 import 'package:plumpen_app/repositories/game_repository.dart';
 import 'package:plumpen_app/repositories/settings_repository.dart';
 
@@ -39,6 +41,7 @@ class GameController with ChangeNotifier {
 
   final SettingsRepository _settingsRepository;
   final GameRepository _gameRepository;
+  final GameHistoryRepository _gameHistoryRepository;
 
   GameController(int cards)
     : _gameData = GameData(
@@ -53,7 +56,8 @@ class GameController with ChangeNotifier {
       _gameDataHistory = [],
       _gameSettings = GameSettings(),
       _settingsRepository = SettingsRepository(),
-      _gameRepository = GameRepository() {
+      _gameRepository = GameRepository(),
+      _gameHistoryRepository = GameHistoryRepository() {
     _settingsRepository.loadSettings().then((val) {
       _gameSettings = val;
     });
@@ -136,6 +140,14 @@ class GameController with ChangeNotifier {
     _gameData.gameState = GameState.gameOver;
 
     _calculateScores();
+
+    _gameHistoryRepository.addEntry(
+      GameHistoryEntry(
+        playedAt: DateTime.now(),
+        gameData: _gameData.copy(),
+        scoreForZero: _gameSettings.scoreForZero,
+      ),
+    );
 
     notifyListeners();
   }
