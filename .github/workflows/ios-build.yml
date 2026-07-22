@@ -1,4 +1,4 @@
-name: iOS Build and Sign (Free Personal Team)
+name: iOS Build and Sign (App Store Connect API Key)
 
 on:
   workflow_dispatch:   # manual trigger from GitHub UI, so you control when it burns minutes
@@ -35,25 +35,21 @@ jobs:
           cd ios
           pod install --repo-update
 
-      - name: Sign in to Apple ID (Xcode account)
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-        run: |
-          xcrun notarytool store-credentials "AC_PASSWORD" \
-            --apple-id "$APPLE_ID" \
-            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
-            --team-id "${{ secrets.APPLE_TEAM_ID }}" || true
-          # This primes credential storage; actual account add happens via xcodebuild -allowProvisioningUpdates below
-
       - name: Build iOS app (unsigned archive)
         run: flutter build ios --release --no-codesign
 
+      - name: Write App Store Connect API key to disk
+        env:
+          APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+        run: |
+          mkdir -p ~/private_keys
+          echo "$APP_STORE_CONNECT_API_KEY" > ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
+
       - name: Archive and sign with automatic provisioning
         env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           cd ios
           xcodebuild -workspace Runner.xcworkspace \
@@ -64,10 +60,16 @@ jobs:
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             CODE_SIGN_STYLE=Automatic \
             -allowProvisioningUpdates \
-            -authenticationKeyIssuerID "" \
+            -authenticationKeyPath ~/private_keys/AuthKey_${KEY_ID}.p8 \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID" \
             archive
 
       - name: Export IPA
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           cd ios
           cat > ExportOptions.plist << EOF
@@ -88,7 +90,10 @@ jobs:
             -archivePath $PWD/build/Runner.xcarchive \
             -exportPath $PWD/build/ipa \
             -exportOptionsPlist ExportOptions.plist \
-            -allowProvisioningUpdates
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_${KEY_ID}.p8 \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID"
 
       - name: Upload IPA as artifact
         uses: actions/upload-artifact@v4
