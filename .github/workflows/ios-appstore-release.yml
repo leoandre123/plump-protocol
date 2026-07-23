@@ -61,7 +61,7 @@ jobs:
             -authenticationKeyPath ~/private_keys/AuthKey_${KEY_ID}.p8 \
             -authenticationKeyID "$KEY_ID" \
             -authenticationKeyIssuerID "$ISSUER_ID" \
-            archive
+            clean archive
 
       - name: Export IPA (App Store distribution)
         env:
