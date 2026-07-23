@@ -12,9 +12,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Fix hardcoded signing identity
+      - name: Remove hardcoded signing identity
         run: |
-          sed -i '' 's/CODE_SIGN_IDENTITY = "Apple Distribution"/CODE_SIGN_IDENTITY = "Apple Development"/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' '/CODE_SIGN_IDENTITY = "Apple Distribution";/d' ios/Runner.xcodeproj/project.pbxproj
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -61,7 +61,6 @@ jobs:
             -archivePath $PWD/build/Runner.xcarchive \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             CODE_SIGN_STYLE=Automatic \
-            CODE_SIGN_IDENTITY="Apple Development" \
             -allowProvisioningUpdates \
             -authenticationKeyPath ~/private_keys/AuthKey_${KEY_ID}.p8 \
             -authenticationKeyID "$KEY_ID" \
@@ -99,6 +98,39 @@ jobs:
             -authenticationKeyPath ~/private_keys/AuthKey_${KEY_ID}.p8 \
             -authenticationKeyID "$KEY_ID" \
             -authenticationKeyIssuerID "$ISSUER_ID"
+
+      - name: Force re-sign app and embedded frameworks with distribution identity
+        run: |
+          cd ios/build/ipa
+          IPA=$(ls *.ipa | head -n1)
+          rm -rf resign_tmp
+          mkdir resign_tmp
+          unzip -q "$IPA" -d resign_tmp
+          APP_PATH="resign_tmp/Payload/Runner.app"
+
+          IDENTITY=$(security find-identity -v -p codesigning | grep "Apple Distribution" | head -n1 | sed -E 's/.*"(.*)"/\1/')
+          echo "Re-signing with identity: $IDENTITY"
+
+          # Preserve the entitlements exportArchive already embedded (push notifications, etc.)
+          codesign -d --entitlements :- --xml "$APP_PATH" > entitlements.plist 2>/dev/null || true
+
+          # Sign nested frameworks first (inside-out), then the app itself.
+          if [ -d "$APP_PATH/Frameworks" ]; then
+            find "$APP_PATH/Frameworks" -maxdepth 1 -name "*.framework" -print0 | \
+              xargs -0 -I{} codesign --force --sign "$IDENTITY" "{}"
+          fi
+
+          if [ -s entitlements.plist ]; then
+            codesign --force --sign "$IDENTITY" --entitlements entitlements.plist "$APP_PATH"
+          else
+            codesign --force --sign "$IDENTITY" "$APP_PATH"
+          fi
+
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+
+          rm -f "$IPA"
+          (cd resign_tmp && zip -qr "../$IPA" Payload)
+          rm -rf resign_tmp entitlements.plist
 
       - name: Upload IPA as artifact
         uses: actions/upload-artifact@v4
