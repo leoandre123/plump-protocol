@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:plumpen_app/framework/game_theme.dart';
 import 'package:plumpen_app/models/game_history_entry.dart';
 import 'package:plumpen_app/repositories/game_history_repository.dart';
 import 'package:plumpen_app/utils/protocol_sharing.dart';
@@ -43,9 +44,25 @@ class _HistoryPageState extends State<HistoryPage> {
 
   @override
   Widget build(BuildContext context) {
+    Color backgroundColor = Theme.of(
+      context,
+    ).extension<GameTheme>()!.tableBackground;
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Historik")),
-      body: _loading
+      appBar: AppBar(
+        title: const Text("Historik"),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          boxShadow: [BoxShadow(blurRadius: 10, color: Colors.black12)],
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: _loading
           ? const Center(child: CircularProgressIndicator())
           : _entries.isEmpty
           ? const Center(child: Text("Ingen historik än"))
@@ -90,6 +107,7 @@ class _HistoryPageState extends State<HistoryPage> {
                 );
               },
             ),
+      ),
     );
   }
 }
@@ -106,6 +124,10 @@ class HistoryDetailPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(_formatDate(entry.playedAt)),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.share),

@@ -47,9 +47,7 @@ class _MainAppState extends State<MainApp> {
     var lightTheme = ThemeData.light().copyWith(
       //textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme),
       textTheme: ThemeData.light().textTheme.apply(fontFamily: 'Inter'),
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: Color(0xFF8B8C6F),
-      ).copyWith(surface: Color(0xFF3A3B3C)),
+      colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFF8B8C6F)),
       scaffoldBackgroundColor: const Color(0xff6A5A4E),
       brightness: Brightness.light,
       extensions: [
