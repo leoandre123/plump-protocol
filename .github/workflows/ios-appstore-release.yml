@@ -18,6 +18,7 @@ jobs:
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
         run: |
           KEYCHAIN_PASSWORD=$(uuidgen)
+          echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> "$GITHUB_ENV"
           echo "$APPLE_CERTIFICATE_P12" | base64 --decode > certificate.p12
 
           security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
@@ -32,6 +33,22 @@ jobs:
 
           rm certificate.p12
           echo "Imported identity:"
+          security find-identity -v -p codesigning build.keychain
+
+      - name: Import Apple Development certificate
+        env:
+          APPLE_DEV_CERTIFICATE_P12: ${{ secrets.APPLE_DEV_CERTIFICATE_P12 }}
+          APPLE_DEV_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DEV_CERTIFICATE_PASSWORD }}
+        run: |
+          echo "$APPLE_DEV_CERTIFICATE_P12" | base64 --decode > dev_certificate.p12
+
+          security import dev_certificate.p12 -k build.keychain -P "$APPLE_DEV_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/security
+
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+
+          rm dev_certificate.p12
+          echo "Imported identities:"
           security find-identity -v -p codesigning build.keychain
 
       - name: Set up Flutter
